@@ -1,4 +1,5 @@
-time.html-
+1)
+#time.html-
 <!DOCTYPE html>
 <html>
 <head>
@@ -17,7 +18,7 @@ time.html-
 </body>
 </html>
 
-urls.py-
+#urls.py-
 from django.urls import path
 from . import views
 
@@ -25,7 +26,7 @@ urlpatterns = [
     path('hours/<int:offset>/', views.hours, name='hours'),
 ]
 
-views.py-
+#views.py-
 from django.shortcuts import render
 import datetime
 
@@ -49,3 +50,903 @@ def hours(request, offset):
     }
 
     return render(request, 'time.html', context)
+
+2)
+#<!-- templates/layout.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        nav {
+            background-color: lightblue;
+            padding: 15px;
+        }
+
+        nav a {
+            margin-right: 20px;
+            text-decoration: none;
+            font-weight: bold;
+            color: black;
+        }
+
+        main {
+            padding: 20px;
+        }
+
+        footer {
+            margin-top: 30px;
+            padding: 10px;
+            background-color: #f2f2f2;
+            text-align: center;
+        }
+    </style>
+
+    <title>{% block title %}{% endblock %}</title>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <nav>
+            <a href="{% url 'home' %}">Home</a>
+            <a href="{% url 'about' %}">About Us</a>
+            <a href="{% url 'contact' %}">Contact Us</a>
+        </nav>
+    </header>
+
+    <!-- Content -->
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 Your Company Name. Developed by Sandhya.</p>
+    </footer>
+
+</body>
+</html>
+
+
+
+#<!-- templates/home.html -->
+{% extends 'layout.html' %}
+
+{% block title %}
+Home
+{% endblock %}
+
+{% block content %}
+<h1>Welcome to Our Website!</h1>
+<p>This is the home page.</p>
+{% endblock %}
+
+
+#<!-- templates/about.html -->
+{% extends 'layout.html' %}
+
+{% block title %}
+About Us
+{% endblock %}
+
+{% block content %}
+<h1>About Us</h1>
+<p>Learn more about who we are and what we do.</p>
+{% endblock %}
+
+
+#<!-- templates/contact.html -->
+{% extends 'layout.html' %}
+
+{% block title %}
+Contact Us
+{% endblock %}
+
+{% block content %}
+<h1>Contact Us</h1>
+<p>Feel free to reach out to us at any time.</p>
+{% endblock %}
+
+
+# views.py
+from django.shortcuts import render
+def home(request):
+    return render(request, 'home.html')
+def about(request):
+    return render(request, 'about.html')
+def contact(request):
+    return render(request, 'contact.html')
+
+
+
+# urls.py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('homepage/', views.home, name='home'),
+    path('about/', views.about, name='about'),
+    path('contact/', views.contact, name='contact'),
+]
+
+
+3)
+# models.py
+from django.db import models
+
+
+class course(models.Model):
+    coursecode = models.CharField(max_length=10)
+    coursename = models.CharField(max_length=50)
+    credits = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.coursecode} - {self.coursename}"
+
+
+class student(models.Model):
+    usn = models.CharField(max_length=10)
+    name = models.CharField(max_length=50)
+    sem = models.IntegerField()
+
+    # Many-to-Many relationship with Course
+    enrollment = models.ManyToManyField(course, related_name='students')
+
+    def __str__(self):
+        return f"{self.usn} - {self.name}"
+
+
+
+
+# views.py
+from django.shortcuts import render, redirect
+from reg_page.models import student, course
+from django.views import generic
+
+
+def home1(request):
+    return render(request, 'homepage.html')
+
+
+def studentlist(request):
+    students = student.objects.all()
+    return render(request, 'studentlist.html', {
+        'student_list': students
+    })
+
+
+def courselist(request):
+    courses = course.objects.all()
+    return render(request, 'courselist.html', {
+        'course_list': courses
+    })
+
+
+def register(request):
+    if request.method == "POST":
+        student_id = request.POST.get('student')
+        course_id = request.POST.get('course')
+
+        selected_student = student.objects.get(id=student_id)
+        selected_course = course.objects.get(id=course_id)
+
+        # Enroll student in selected course
+        selected_student.enrollment.add(selected_course)
+
+        return redirect('/enrolledlist/')
+
+    students = student.objects.all()
+    courses = course.objects.all()
+
+    return render(request, 'register.html', {
+        'student_list': students,
+        'course_list': courses
+    })
+
+
+def enrolledStudents(request):
+    course_list = course.objects.all()
+    student_list = None
+    selected_course = None
+
+    if request.method == "POST":
+        course_id = request.POST.get('course')
+        selected_course = course.objects.get(id=course_id)
+
+        # Get all students enrolled in this course
+        student_list = selected_course.students.all()
+
+    return render(request, 'enrolledlist.html', {
+        'Course_List': course_list,
+        'student_list': student_list,
+        'course': selected_course
+    })
+
+
+# Generic List View
+class StudentListView(generic.ListView):
+    model = student
+    template_name = "GenericListViewStudent.html"
+
+
+# Generic Detail View
+class StudentDetailView(generic.DetailView):
+    model = student
+    template_name = "GenericDetailedViewStudent.html"
+
+
+
+
+
+# urls.py
+from django.urls import path
+from reg_page.views import *
+from .views import StudentListView, StudentDetailView
+
+urlpatterns = [
+    path('mainpage/', home1, name='home1'),
+    path('studentlist/', studentlist, name='studentlist'),
+    path('courselist/', courselist, name='courselist'),
+    path('register/', register, name='register'),
+    path('enrolledlist/', enrolledStudents, name='enrolledStudents'),
+
+    # Generic Views
+    path('students/', StudentListView.as_view(), name='student-list'),
+    path('students/<int:pk>/', StudentDetailView.as_view(), name='student-detail'),
+]
+
+
+
+#<!-- templates/basicTemplate.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}Student Course Registration{% endblock %}</title>
+    <style>
+        nav {
+            background-color: lightblue;
+            padding: 15px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 5px;
+            background-color: #555;
+        }
+
+        nav a:hover {
+            background-color: aqua;
+        }
+
+        ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            flex-direction: row;
+        }
+
+        li {
+            margin-right: 20px;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            background-color: blue;
+            color: yellow;
+            padding: 10px;
+        }
+
+        footer {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <center>
+        <h1>STUDENT COURSE REGISTRATION PORTAL</h1>
+    </center>
+
+    <nav>
+        <ul>
+            <li><a href="/mainpage/">HOME</a></li>
+            <li><a href="/studentlist/">STUDENT LIST</a></li>
+            <li><a href="/courselist/">COURSE LIST</a></li>
+            <li><a href="/register/">REGISTER</a></li>
+            <li><a href="/enrolledlist/">ENROLLED LIST</a></li>
+        </ul>
+
+        <!-- Generic List View -->
+        <a href="{% url 'student-list' %}">Generic Student List View</a>
+    </nav>
+
+    <section>
+        {% block content %}
+        {% endblock %}
+    </section>
+
+    <footer>
+        <hr />
+        <p>&copy; Designed and Developed by Sandhya</p>
+    </footer>
+</body>
+</html>
+
+
+#<!-- templates/homepage.html -->
+{% extends 'basicTemplate.html' %}
+
+{% block title %}
+Home Page
+{% endblock %}
+
+{% block content %}
+<li>Click on Student List to get the List of students</li>
+<li>Click on Course List to get the list of courses</li>
+<li>Click on Register to enroll a student in a course</li>
+{% endblock %}
+
+
+#<!-- templates/studentlist.html -->
+{% extends 'basicTemplate.html' %}
+
+{% block title %}
+Student List
+{% endblock %}
+
+{% block content %}
+<h1>Student List</h1>
+
+<table border="1">
+    <tr>
+        <th>USN</th>
+        <th>NAME</th>
+        <th>SEM</th>
+    </tr>
+
+    {% for s in student_list %}
+    <tr>
+        <td>{{ s.usn }}</td>
+        <td>{{ s.name }}</td>
+        <td>{{ s.sem }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}
+
+
+5)
+
+# admin.py
+from django.contrib import admin
+from reg_page.models import student, course
+
+
+# Customization for Course Admin
+class CourseAdmin(admin.ModelAdmin):
+    # Columns displayed in admin list page
+    list_display = ('coursecode', 'coursename', 'credits')
+
+    # Search box fields
+    search_fields = ('coursecode', 'coursename')
+
+    # Filters in right sidebar
+    list_filter = ('credits',)
+
+    # Default ordering
+    ordering = ('coursecode',)
+
+
+# Customization for Student Admin
+class StudentAdmin(admin.ModelAdmin):
+    # Columns displayed in admin list page
+    list_display = ('usn', 'name', 'sem')
+
+    # Search box fields
+    search_fields = ('usn', 'name')
+
+    # Filters in right sidebar
+    list_filter = ('sem',)
+
+    # Ordering
+    ordering = ('usn',)
+
+    # Horizontal selector for ManyToMany field
+    filter_horizontal = ('enrollment',)
+
+
+# Register models with customized admin classes
+admin.site.register(course, CourseAdmin)
+admin.site.register(student, StudentAdmin)
+
+# Custom admin site title and header
+admin.site.site_header = "Student Course Registration Admin"
+admin.site.site_title = "SCR Admin Portal"
+admin.site.index_title = "Welcome to Student Course Registration Portal"
+
+
+6)
+# models.py
+from django.db import models
+
+
+class Project(models.Model):
+    # Field for the project topic
+    topic = models.CharField(max_length=100)
+
+    # Field for languages used
+    languages_used = models.TextField()
+
+    # Field for project duration in weeks
+    duration = models.PositiveIntegerField()
+
+    def __str__(self):
+        return self.topic
+
+
+
+# forms.py
+from django import forms
+from .models import Project
+
+
+class ProjectForm(forms.ModelForm):
+    class Meta:
+        model = Project
+        fields = ['topic', 'languages_used', 'duration']
+
+        widgets = {
+            'topic': forms.TextInput(
+                attrs={'placeholder': 'Enter project topic'}
+            ),
+            'languages_used': forms.Textarea(
+                attrs={'placeholder': 'Enter languages used'}
+            ),
+            'duration': forms.NumberInput(
+                attrs={'placeholder': 'Enter duration in weeks'}
+            ),
+        }
+
+        labels = {
+            'topic': 'Project Topic',
+            'languages_used': 'Languages Used for the Project',
+            'duration': 'Duration (Weeks)',
+        }
+
+
+
+# views.py
+from django.shortcuts import render
+from .forms import ProjectForm
+
+
+def project_view(request):
+    if request.method == 'POST':
+        form = ProjectForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+            return render(request, 'project_success_page.html')
+    else:
+        form = ProjectForm()
+
+    return render(request, 'project_form.html', {
+        'form': form
+    })
+
+
+# urls.py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('project/', views.project_view, name='project'),
+]
+
+<!-- templates/project_form.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Project Form</title>
+</head>
+<body>
+    <h1>Submit Your Project</h1>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
+
+
+<!-- templates/project_success_page.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Success</title>
+</head>
+<body>
+    <h1>Success!</h1>
+
+    <p>Your project has been submitted successfully.</p>
+
+    <a href="/project/">Go back to the Project Form</a>
+</body>
+</html>
+
+
+
+7)
+# views.py
+from django.shortcuts import render, redirect
+from reg_page.models import student, course
+from django.views import generic
+
+
+def home1(request):
+    return render(request, 'homepage.html')
+
+
+def studentlist(request):
+    students = student.objects.all()
+    return render(request, 'studentlist.html', {
+        'student_list': students
+    })
+
+
+def courselist(request):
+    courses = course.objects.all()
+    return render(request, 'courselist.html', {
+        'course_list': courses
+    })
+
+
+def register(request):
+    if request.method == "POST":
+        student_id = request.POST.get('student')
+        course_id = request.POST.get('course')
+
+        selected_student = student.objects.get(id=student_id)
+        selected_course = course.objects.get(id=course_id)
+
+        # Add selected course to student's enrollment
+        selected_student.enrollment.add(selected_course)
+
+        return redirect('/enrolledlist/')
+
+    students = student.objects.all()
+    courses = course.objects.all()
+
+    return render(request, 'register.html', {
+        'student_list': students,
+        'course_list': courses
+    })
+
+
+def enrolledStudents(request):
+    course_list = course.objects.all()
+    student_list = None
+    selected_course = None
+
+    if request.method == "POST":
+        course_id = request.POST.get('course')
+        selected_course = course.objects.get(id=course_id)
+
+        # Retrieve all students registered for selected course
+        student_list = selected_course.students.all()
+
+    return render(request, 'enrolledlist.html', {
+        'Course_List': course_list,
+        'student_list': student_list,
+        'course': selected_course
+    })
+
+
+# Generic Class-Based List View
+class StudentListView(generic.ListView):
+    model = student
+    template_name = "GenericListViewStudent.html"
+
+
+# Generic Class-Based Detail View
+class StudentDetailView(generic.DetailView):
+    model = student
+    template_name = "GenericDetailedViewStudent.html"
+
+
+
+
+# urls.py
+from django.urls import path
+from reg_page.views import *
+from .views import StudentListView, StudentDetailView
+
+urlpatterns = [
+    path('mainpage/', home1, name='home1'),
+    path('studentlist/', studentlist, name='studentlist'),
+    path('courselist/', courselist, name='courselist'),
+    path('register/', register, name='register'),
+    path('enrolledlist/', enrolledStudents, name='enrolledStudents'),
+
+    # Generic List View
+    path('students/', StudentListView.as_view(), name='student-list'),
+
+    # Generic Detail View
+    path('students/<int:pk>/', StudentDetailView.as_view(), name='student-detail'),
+]
+
+
+
+<!-- templates/GenericListViewStudent.html -->
+{% extends 'basicTemplate.html' %}
+
+{% block title %}
+Generic Student List View
+{% endblock %}
+
+{% block content %}
+
+{% if student_list %}
+<table border="1">
+    <tr>
+        <th>USN</th>
+        <th>Courses Enrolled</th>
+    </tr>
+
+    {% for student in object_list %}
+    <tr>
+        <td>
+            <a href="{% url 'student-detail' student.pk %}">
+                {{ student.usn }}
+            </a>
+        </td>
+
+        <td>
+            {% for course in student.enrollment.all %}
+                <span>{{ course.coursename }}</span><br>
+            {% endfor %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<h1>No Students Enrolled</h1>
+{% endif %}
+
+{% endblock %}
+
+
+
+<!-- templates/GenericDetailedViewStudent.html -->
+{% extends 'basicTemplate.html' %}
+
+{% block title %}
+Detailed Student View
+{% endblock %}
+
+{% block content %}
+<h1>Student Name: {{ object.name }}</h1>
+<h1>Student USN: {{ object.usn }}</h1>
+<h1>Student Sem: {{ object.sem }}</h1>
+{% endblock %}
+
+
+
+8)
+
+# models.py
+from django.db import models
+
+
+class course1(models.Model):
+    coursecode = models.CharField(max_length=10)
+    coursename = models.CharField(max_length=50)
+    credits = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.coursecode} - {self.coursename}"
+
+
+# admin.py
+from django.contrib import admin
+from pdf_file.models import course1
+
+# Register your models here.
+admin.site.register(course1)
+
+# views.py
+from django.shortcuts import render
+from django.http import HttpResponse
+from pdf_file.models import course1
+
+
+# View to display the course list
+def courselist2(request):
+    courses = course1.objects.all()
+    return render(request, 'course_list.html', {
+        'course_list1': courses
+    })
+
+
+# CSV generation view
+import csv
+
+
+def generateCSV(request):
+    courses = course1.objects.all()
+
+    resp = HttpResponse(content_type='text/csv')
+    resp['Content-Disposition'] = 'attachment; filename=course_data.csv'
+
+    # Create CSV writer object
+    writer = csv.writer(resp)
+
+    # Header row
+    writer.writerow(['Course Code', 'Course Name', 'Course Credits'])
+
+    # Data rows
+    for c in courses:
+        writer.writerow([
+            c.coursecode,
+            c.coursename,
+            c.credits
+        ])
+
+    return resp
+
+
+# PDF generation view
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Table
+
+
+def generatePDF(request):
+    courses = course1.objects.all()
+
+    resp = HttpResponse(content_type='application/pdf')
+    resp['Content-Disposition'] = 'attachment; filename=course_data.pdf'
+
+    # Create PDF document
+    pdf = SimpleDocTemplate(resp, pagesize=A4)
+
+    # Table data
+    table_data = [['Course Code', 'Course Name', 'Course Credits']]
+
+    # Add course rows
+    for c in courses:
+        table_data.append([
+            c.coursecode,
+            c.coursename,
+            c.credits
+        ])
+
+    # Create table
+    table = Table(table_data)
+
+    # Build PDF
+    pdf.build([table])
+
+    return resp
+
+
+# urls.py
+from django.urls import path
+from .views import courselist2, generateCSV, generatePDF
+
+urlpatterns = [
+    path('courses/', courselist2, name='course_list'),
+    path('courses/generateCSV/', generateCSV, name='generate_csv'),
+    path('courses/generatePDF/', generatePDF, name='generate_pdf'),
+]
+
+
+<!-- templates/basic_page.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        nav {
+            background-color: lightblue;
+            padding: 15px;
+        }
+
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            padding: 10px 20px;
+            margin: 0px 10px;
+            border-radius: 5px;
+            background-color: #555;
+            flex-wrap: wrap;
+        }
+
+        nav a:hover {
+            background-color: aqua;
+        }
+
+        ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            flex-direction: row;
+        }
+
+        li {
+            margin-right: 20px;
+            margin-bottom: 25px;
+        }
+    </style>
+
+    <title>
+        {% block title %}{% endblock %}
+    </title>
+</head>
+<body>
+    <center>
+        <h1 style="background-color: blue; color: yellow;">
+            STUDENT COURSE REGISTRATION PORTAL
+        </h1>
+    </center>
+
+    <nav>
+        <ul>
+            <li><a href="/courses/">COURSE LIST</a></li>
+            <li><a href="/courses/generateCSV/">COURSE LIST CSV DOWNLOAD</a></li>
+            <li><a href="/courses/generatePDF/">COURSE LIST PDF DOWNLOAD</a></li>
+        </ul>
+    </nav>
+
+    <section>
+        {% block content %}
+        {% endblock %}
+    </section>
+
+    <footer>
+        <hr />
+        <center>
+            &copy; Designed and Developed by Sandhya
+        </center>
+    </footer>
+</body>
+</html>
+
+
+<!-- templates/course_list.html -->
+{% extends 'basic_page.html' %}
+
+{% block title %}
+Course List
+{% endblock %}
+
+{% block content %}
+<h1>Course List</h1>
+
+<table border="1">
+    <tr>
+        <th>Sub Code</th>
+        <th>Sub Name</th>
+        <th>Credits</th>
+    </tr>
+
+    {% for c in course_list1 %}
+    <tr>
+        <td>{{ c.coursecode }}</td>
+        <td>{{ c.coursename }}</td>
+        <td>{{ c.credits }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}
