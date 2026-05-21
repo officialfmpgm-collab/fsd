@@ -423,6 +423,249 @@ Student List
 </table>
 {% endblock %}
 
+<!-- templates/courselist.html -->
+
+{% extends 'basicTemplate.html' %}
+
+{% block title %}
+Course List
+{% endblock %}
+
+{% block content %}
+
+<h1>Course List</h1>
+
+<table border="1">
+
+    <tr>
+        <th>Sub Code</th>
+        <th>Sub Name</th>
+        <th>Credits</th>
+    </tr>
+
+    {% for c in course_list %}
+
+    <tr>
+
+        <td>{{ c.coursecode }}</td>
+
+        <td>{{ c.coursename }}</td>
+
+        <td>{{ c.credits }}</td>
+
+    </tr>
+
+    {% endfor %}
+
+</table>
+
+{% endblock %}
+
+
+
+<!-- templates/register.html -->
+
+{% extends 'basicTemplate.html' %}
+
+{% block title %}
+Course Register Page
+{% endblock %}
+
+{% block content %}
+
+<h1>Student Course Registration</h1>
+
+<form method="POST" action="">
+
+    {% csrf_token %}
+
+    Select USN:
+
+    <select name="student">
+
+        {% for s in student_list %}
+
+        <option value="{{ s.id }}">
+            {{ s.usn }}
+        </option>
+
+        {% endfor %}
+
+    </select>
+
+    Select Course:
+
+    <select name="course">
+
+        {% for c in course_list %}
+
+        <option value="{{ c.id }}">
+            {{ c.coursecode }}
+        </option>
+
+        {% endfor %}
+
+    </select>
+
+    <input type="submit" value="ENROLL" />
+
+</form>
+
+{% endblock %}
+
+
+<!-- templates/enrolledlist.html -->
+
+{% extends 'basicTemplate.html' %}
+
+{% block title %}
+Course Registration Details
+{% endblock %}
+
+{% block content %}
+
+<form method="POST" action="">
+
+    {% csrf_token %}
+
+    Select Course:
+
+    <select name="course">
+
+        {% for c in Course_List %}
+
+        <option value="{{ c.id }}">
+            {{ c.coursecode }}
+        </option>
+
+        {% endfor %}
+
+    </select>
+
+    <input type="submit" value="Search" />
+
+    {% if student_list %}
+
+    <h1>
+        List of Students registered for the course
+        {{ course.coursecode }}
+    </h1>
+
+    <table border="1">
+
+        <tr>
+            <th>USN</th>
+            <th>NAME</th>
+            <th>SEM</th>
+        </tr>
+
+        {% for s in student_list %}
+
+        <tr>
+
+            <td>{{ s.usn }}</td>
+
+            <td>{{ s.name }}</td>
+
+            <td>{{ s.sem }}</td>
+
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+    {% endif %}
+
+</form>
+
+{% endblock %}
+
+
+<!-- templates/GenericListViewStudent.html -->
+
+{% extends 'basicTemplate.html' %}
+
+{% block title %}
+Generic Student List View
+{% endblock %}
+
+{% block content %}
+
+{% if student_list %}
+
+<table border="1">
+
+    <tr>
+        <th>USN</th>
+        <th>Courses Enrolled</th>
+    </tr>
+
+    {% for student in object_list %}
+
+    <tr>
+
+        <td>
+
+            <a href="{% url 'student-detail' student.pk %}">
+                {{ student.usn }}
+            </a>
+
+        </td>
+
+        <td>
+
+            {% for course in student.enrollment.all %}
+
+            <span>
+                {{ course.coursename }}
+            </span><br>
+
+            {% endfor %}
+
+        </td>
+
+    </tr>
+
+    {% endfor %}
+
+</table>
+
+{% else %}
+
+<h1>No Students Enrolled</h1>
+
+{% endif %}
+
+{% endblock %}
+
+
+<!-- templates/GenericDetailedViewStudent.html -->
+
+{% extends 'basicTemplate.html' %}
+
+{% block title %}
+Detailed Student View
+{% endblock %}
+
+{% block content %}
+
+<h1>
+    Student Name: {{ object.name }}
+</h1>
+
+<h1>
+    Student USN: {{ object.usn }}
+</h1>
+
+<h1>
+    Student Sem: {{ object.sem }}
+</h1>
+
+{% endblock %}
+
+
+
 
 5)
 
