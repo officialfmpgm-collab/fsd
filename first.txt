@@ -1,1195 +1,263 @@
-1)
-#time.html-
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Hours Ahead and Before</title>
-</head>
-<body>
-    <div class="container text-center">
-        <h1>Current Date and Time on the Server</h1>
-
-        <p>Current time: {{ current_time }}</p>
-
-        <p>In {{ offset }} hour(s), it will be {{ future_time }}</p>
-
-        <p>In -{{ offset }} hour(s), it will be {{ before_time }}</p>
-    </div>
-</body>
-</html>
-
-#urls.py-
-from django.urls import path
-from . import views
-
-urlpatterns = [
-    path('hours/<int:offset>/', views.hours, name='hours'),
-]
-
-#views.py-
-from django.shortcuts import render
-import datetime
-
-
-def hours(request, offset):
-    # Current date and time
-    now = datetime.datetime.now()
-
-    # Time after given offset hours
-    dt = now + datetime.timedelta(hours=offset)
-
-    # Time before given offset hours
-    dt1 = now - datetime.timedelta(hours=offset)
-
-    # Data to send to template
-    context = {
-        'current_time': now,
-        'offset': offset,
-        'future_time': dt,
-        'before_time': dt1
-    }
-
-    return render(request, 'time.html', context)
-
-2)
-#<!-- templates/layout.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <style>
-        nav {
-            background-color: lightblue;
-            padding: 15px;
-        }
-
-        nav a {
-            margin-right: 20px;
-            text-decoration: none;
-            font-weight: bold;
-            color: black;
-        }
-
-        main {
-            padding: 20px;
-        }
-
-        footer {
-            margin-top: 30px;
-            padding: 10px;
-            background-color: #f2f2f2;
-            text-align: center;
-        }
-    </style>
-
-    <title>{% block title %}{% endblock %}</title>
-</head>
-<body>
-
-    <!-- Header -->
-    <header>
-        <nav>
-            <a href="{% url 'home' %}">Home</a>
-            <a href="{% url 'about' %}">About Us</a>
-            <a href="{% url 'contact' %}">Contact Us</a>
-        </nav>
-    </header>
-
-    <!-- Content -->
-    <main>
-        {% block content %}
-        {% endblock %}
-    </main>
-
-    <!-- Footer -->
-    <footer>
-        <p>&copy; 2025 Your Company Name. Developed by Sandhya.</p>
-    </footer>
-
-</body>
-</html>
-
-
-
-#<!-- templates/home.html -->
-{% extends 'layout.html' %}
-
-{% block title %}
-Home
-{% endblock %}
-
-{% block content %}
-<h1>Welcome to Our Website!</h1>
-<p>This is the home page.</p>
-{% endblock %}
-
-
-#<!-- templates/about.html -->
-{% extends 'layout.html' %}
-
-{% block title %}
-About Us
-{% endblock %}
-
-{% block content %}
-<h1>About Us</h1>
-<p>Learn more about who we are and what we do.</p>
-{% endblock %}
-
-
-#<!-- templates/contact.html -->
-{% extends 'layout.html' %}
-
-{% block title %}
-Contact Us
-{% endblock %}
-
-{% block content %}
-<h1>Contact Us</h1>
-<p>Feel free to reach out to us at any time.</p>
-{% endblock %}
-
-
-# views.py
-from django.shortcuts import render
-def home(request):
-    return render(request, 'home.html')
-def about(request):
-    return render(request, 'about.html')
-def contact(request):
-    return render(request, 'contact.html')
-
-
-
-# urls.py
-from django.urls import path
-from . import views
-
-urlpatterns = [
-    path('homepage/', views.home, name='home'),
-    path('about/', views.about, name='about'),
-    path('contact/', views.contact, name='contact'),
-]
-
-
-3)
-# models.py
-from django.db import models
-
-
-class course(models.Model):
-    coursecode = models.CharField(max_length=10)
-    coursename = models.CharField(max_length=50)
-    credits = models.IntegerField()
-
-    def __str__(self):
-        return f"{self.coursecode} - {self.coursename}"
-
-
-class student(models.Model):
-    usn = models.CharField(max_length=10)
-    name = models.CharField(max_length=50)
-    sem = models.IntegerField()
-
-    # Many-to-Many relationship with Course
-    enrollment = models.ManyToManyField(course, related_name='students')
-
-    def __str__(self):
-        return f"{self.usn} - {self.name}"
-
-
-
-
-# views.py
-from django.shortcuts import render, redirect
-from reg_page.models import student, course
-from django.views import generic
-
-
-def home1(request):
-    return render(request, 'homepage.html')
-
-
-def studentlist(request):
-    students = student.objects.all()
-    return render(request, 'studentlist.html', {
-        'student_list': students
-    })
-
-
-def courselist(request):
-    courses = course.objects.all()
-    return render(request, 'courselist.html', {
-        'course_list': courses
-    })
-
-
-def register(request):
-    if request.method == "POST":
-        student_id = request.POST.get('student')
-        course_id = request.POST.get('course')
-
-        selected_student = student.objects.get(id=student_id)
-        selected_course = course.objects.get(id=course_id)
-
-        # Enroll student in selected course
-        selected_student.enrollment.add(selected_course)
-
-        return redirect('/enrolledlist/')
-
-    students = student.objects.all()
-    courses = course.objects.all()
-
-    return render(request, 'register.html', {
-        'student_list': students,
-        'course_list': courses
-    })
-
-
-def enrolledStudents(request):
-    course_list = course.objects.all()
-    student_list = None
-    selected_course = None
-
-    if request.method == "POST":
-        course_id = request.POST.get('course')
-        selected_course = course.objects.get(id=course_id)
-
-        # Get all students enrolled in this course
-        student_list = selected_course.students.all()
-
-    return render(request, 'enrolledlist.html', {
-        'Course_List': course_list,
-        'student_list': student_list,
-        'course': selected_course
-    })
-
-
-# Generic List View
-class StudentListView(generic.ListView):
-    model = student
-    template_name = "GenericListViewStudent.html"
-
-
-# Generic Detail View
-class StudentDetailView(generic.DetailView):
-    model = student
-    template_name = "GenericDetailedViewStudent.html"
-
-
-
-
-
-# urls.py
-from django.urls import path
-from reg_page.views import *
-from .views import StudentListView, StudentDetailView
-
-urlpatterns = [
-    path('mainpage/', home1, name='home1'),
-    path('studentlist/', studentlist, name='studentlist'),
-    path('courselist/', courselist, name='courselist'),
-    path('register/', register, name='register'),
-    path('enrolledlist/', enrolledStudents, name='enrolledStudents'),
-
-    # Generic Views
-    path('students/', StudentListView.as_view(), name='student-list'),
-    path('students/<int:pk>/', StudentDetailView.as_view(), name='student-detail'),
-]
-
-
-
-#<!-- templates/basicTemplate.html -->
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{% block title %}Student Course Registration{% endblock %}</title>
-    <style>
-        nav {
-            background-color: lightblue;
-            padding: 15px;
-        }
-
-        nav a {
-            color: white;
-            text-decoration: none;
-            padding: 10px 20px;
-            margin: 0 10px;
-            border-radius: 5px;
-            background-color: #555;
-        }
-
-        nav a:hover {
-            background-color: aqua;
-        }
-
-        ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-wrap: wrap;
-            flex-direction: row;
-        }
-
-        li {
-            margin-right: 20px;
-            margin-bottom: 25px;
-        }
-
-        h1 {
-            background-color: blue;
-            color: yellow;
-            padding: 10px;
-        }
-
-        footer {
-            margin-top: 20px;
-            text-align: center;
-        }
-    </style>
-</head>
-<body>
-    <center>
-        <h1>STUDENT COURSE REGISTRATION PORTAL</h1>
-    </center>
-
-    <nav>
-        <ul>
-            <li><a href="/mainpage/">HOME</a></li>
-            <li><a href="/studentlist/">STUDENT LIST</a></li>
-            <li><a href="/courselist/">COURSE LIST</a></li>
-            <li><a href="/register/">REGISTER</a></li>
-            <li><a href="/enrolledlist/">ENROLLED LIST</a></li>
-        </ul>
-
-        <!-- Generic List View -->
-        <a href="{% url 'student-list' %}">Generic Student List View</a>
-    </nav>
-
-    <section>
-        {% block content %}
-        {% endblock %}
-    </section>
-
-    <footer>
-        <hr />
-        <p>&copy; Designed and Developed by Sandhya</p>
-    </footer>
-</body>
-</html>
-
-
-#<!-- templates/homepage.html -->
-{% extends 'basicTemplate.html' %}
-
-{% block title %}
-Home Page
-{% endblock %}
-
-{% block content %}
-<li>Click on Student List to get the List of students</li>
-<li>Click on Course List to get the list of courses</li>
-<li>Click on Register to enroll a student in a course</li>
-{% endblock %}
-
-
-#<!-- templates/studentlist.html -->
-{% extends 'basicTemplate.html' %}
-
-{% block title %}
-Student List
-{% endblock %}
-
-{% block content %}
-<h1>Student List</h1>
-
-<table border="1">
-    <tr>
-        <th>USN</th>
-        <th>NAME</th>
-        <th>SEM</th>
-    </tr>
-
-    {% for s in student_list %}
-    <tr>
-        <td>{{ s.usn }}</td>
-        <td>{{ s.name }}</td>
-        <td>{{ s.sem }}</td>
-    </tr>
-    {% endfor %}
-</table>
-{% endblock %}
-
-<!-- templates/courselist.html -->
-
-{% extends 'basicTemplate.html' %}
-
-{% block title %}
-Course List
-{% endblock %}
-
-{% block content %}
-
-<h1>Course List</h1>
-
-<table border="1">
-
-    <tr>
-        <th>Sub Code</th>
-        <th>Sub Name</th>
-        <th>Credits</th>
-    </tr>
-
-    {% for c in course_list %}
-
-    <tr>
-
-        <td>{{ c.coursecode }}</td>
-
-        <td>{{ c.coursename }}</td>
-
-        <td>{{ c.credits }}</td>
-
-    </tr>
-
-    {% endfor %}
-
-</table>
-
-{% endblock %}
-
-
-
-<!-- templates/register.html -->
-
-{% extends 'basicTemplate.html' %}
-
-{% block title %}
-Course Register Page
-{% endblock %}
-
-{% block content %}
-
-<h1>Student Course Registration</h1>
-
-<form method="POST" action="">
-
-    {% csrf_token %}
-
-    Select USN:
-
-    <select name="student">
-
-        {% for s in student_list %}
-
-        <option value="{{ s.id }}">
-            {{ s.usn }}
-        </option>
-
-        {% endfor %}
-
-    </select>
-
-    Select Course:
-
-    <select name="course">
-
-        {% for c in course_list %}
-
-        <option value="{{ c.id }}">
-            {{ c.coursecode }}
-        </option>
-
-        {% endfor %}
-
-    </select>
-
-    <input type="submit" value="ENROLL" />
-
-</form>
-
-{% endblock %}
-
-
-<!-- templates/enrolledlist.html -->
-
-{% extends 'basicTemplate.html' %}
-
-{% block title %}
-Course Registration Details
-{% endblock %}
-
-{% block content %}
-
-<form method="POST" action="">
-
-    {% csrf_token %}
-
-    Select Course:
-
-    <select name="course">
-
-        {% for c in Course_List %}
-
-        <option value="{{ c.id }}">
-            {{ c.coursecode }}
-        </option>
-
-        {% endfor %}
-
-    </select>
-
-    <input type="submit" value="Search" />
-
-    {% if student_list %}
-
-    <h1>
-        List of Students registered for the course
-        {{ course.coursecode }}
-    </h1>
-
-    <table border="1">
-
-        <tr>
-            <th>USN</th>
-            <th>NAME</th>
-            <th>SEM</th>
-        </tr>
-
-        {% for s in student_list %}
-
-        <tr>
-
-            <td>{{ s.usn }}</td>
-
-            <td>{{ s.name }}</td>
-
-            <td>{{ s.sem }}</td>
-
-        </tr>
-
-        {% endfor %}
-
-    </table>
-
-    {% endif %}
-
-</form>
-
-{% endblock %}
-
-
-<!-- templates/GenericListViewStudent.html -->
-
-{% extends 'basicTemplate.html' %}
-
-{% block title %}
-Generic Student List View
-{% endblock %}
-
-{% block content %}
-
-{% if student_list %}
-
-<table border="1">
-
-    <tr>
-        <th>USN</th>
-        <th>Courses Enrolled</th>
-    </tr>
-
-    {% for student in object_list %}
-
-    <tr>
-
-        <td>
-
-            <a href="{% url 'student-detail' student.pk %}">
-                {{ student.usn }}
-            </a>
-
-        </td>
-
-        <td>
-
-            {% for course in student.enrollment.all %}
-
-            <span>
-                {{ course.coursename }}
-            </span><br>
-
-            {% endfor %}
-
-        </td>
-
-    </tr>
-
-    {% endfor %}
-
-</table>
-
-{% else %}
-
-<h1>No Students Enrolled</h1>
-
-{% endif %}
-
-{% endblock %}
-
-
-<!-- templates/GenericDetailedViewStudent.html -->
-
-{% extends 'basicTemplate.html' %}
-
-{% block title %}
-Detailed Student View
-{% endblock %}
-
-{% block content %}
-
-<h1>
-    Student Name: {{ object.name }}
-</h1>
-
-<h1>
-    Student USN: {{ object.usn }}
-</h1>
-
-<h1>
-    Student Sem: {{ object.sem }}
-</h1>
-
-{% endblock %}
-
-
-
-
-5)
-
-# admin.py
-from django.contrib import admin
-from reg_page.models import student, course
-
-
-# Customization for Course Admin
-class CourseAdmin(admin.ModelAdmin):
-    # Columns displayed in admin list page
-    list_display = ('coursecode', 'coursename', 'credits')
-
-    # Search box fields
-    search_fields = ('coursecode', 'coursename')
-
-    # Filters in right sidebar
-    list_filter = ('credits',)
-
-    # Default ordering
-    ordering = ('coursecode',)
-
-
-# Customization for Student Admin
-class StudentAdmin(admin.ModelAdmin):
-    # Columns displayed in admin list page
-    list_display = ('usn', 'name', 'sem')
-
-    # Search box fields
-    search_fields = ('usn', 'name')
-
-    # Filters in right sidebar
-    list_filter = ('sem',)
-
-    # Ordering
-    ordering = ('usn',)
-
-    # Horizontal selector for ManyToMany field
-    filter_horizontal = ('enrollment',)
-
-
-# Register models with customized admin classes
-admin.site.register(course, CourseAdmin)
-admin.site.register(student, StudentAdmin)
-
-# Custom admin site title and header
-admin.site.site_header = "Student Course Registration Admin"
-admin.site.site_title = "SCR Admin Portal"
-admin.site.index_title = "Welcome to Student Course Registration Portal"
-
-
-6)
-# models.py
-from django.db import models
-
-
-class Project(models.Model):
-    # Field for the project topic
-    topic = models.CharField(max_length=100)
-
-    # Field for languages used
-    languages_used = models.TextField()
-
-    # Field for project duration in weeks
-    duration = models.PositiveIntegerField()
-
-    def __str__(self):
-        return self.topic
-
-
-
-# forms.py
-from django import forms
-from .models import Project
-
-
-class ProjectForm(forms.ModelForm):
-    class Meta:
-        model = Project
-        fields = ['topic', 'languages_used', 'duration']
-
-        widgets = {
-            'topic': forms.TextInput(
-                attrs={'placeholder': 'Enter project topic'}
-            ),
-            'languages_used': forms.Textarea(
-                attrs={'placeholder': 'Enter languages used'}
-            ),
-            'duration': forms.NumberInput(
-                attrs={'placeholder': 'Enter duration in weeks'}
-            ),
-        }
-
-        labels = {
-            'topic': 'Project Topic',
-            'languages_used': 'Languages Used for the Project',
-            'duration': 'Duration (Weeks)',
-        }
-
-
-
-# views.py
-from django.shortcuts import render
-from .forms import ProjectForm
-
-
-def project_view(request):
-    if request.method == 'POST':
-        form = ProjectForm(request.POST)
-
-        if form.is_valid():
-            form.save()
-            return render(request, 'project_success_page.html')
-    else:
-        form = ProjectForm()
-
-    return render(request, 'project_form.html', {
-        'form': form
-    })
-
-
-# urls.py
-from django.urls import path
-from . import views
-
-urlpatterns = [
-    path('project/', views.project_view, name='project'),
-]
-
-<!-- templates/project_form.html -->
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Project Form</title>
-</head>
-<body>
-    <h1>Submit Your Project</h1>
-
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Submit</button>
-    </form>
-</body>
-</html>
-
-
-<!-- templates/project_success_page.html -->
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Success</title>
-</head>
-<body>
-    <h1>Success!</h1>
-
-    <p>Your project has been submitted successfully.</p>
-
-    <a href="/project/">Go back to the Project Form</a>
-</body>
-</html>
-
-
-
-7)
-# views.py
-from django.shortcuts import render, redirect
-from reg_page.models import student, course
-from django.views import generic
-
-
-def home1(request):
-    return render(request, 'homepage.html')
-
-
-def studentlist(request):
-    students = student.objects.all()
-    return render(request, 'studentlist.html', {
-        'student_list': students
-    })
-
-
-def courselist(request):
-    courses = course.objects.all()
-    return render(request, 'courselist.html', {
-        'course_list': courses
-    })
-
-
-def register(request):
-    if request.method == "POST":
-        student_id = request.POST.get('student')
-        course_id = request.POST.get('course')
-
-        selected_student = student.objects.get(id=student_id)
-        selected_course = course.objects.get(id=course_id)
-
-        # Add selected course to student's enrollment
-        selected_student.enrollment.add(selected_course)
-
-        return redirect('/enrolledlist/')
-
-    students = student.objects.all()
-    courses = course.objects.all()
-
-    return render(request, 'register.html', {
-        'student_list': students,
-        'course_list': courses
-    })
-
-
-def enrolledStudents(request):
-    course_list = course.objects.all()
-    student_list = None
-    selected_course = None
-
-    if request.method == "POST":
-        course_id = request.POST.get('course')
-        selected_course = course.objects.get(id=course_id)
-
-        # Retrieve all students registered for selected course
-        student_list = selected_course.students.all()
-
-    return render(request, 'enrolledlist.html', {
-        'Course_List': course_list,
-        'student_list': student_list,
-        'course': selected_course
-    })
-
-
-# Generic Class-Based List View
-class StudentListView(generic.ListView):
-    model = student
-    template_name = "GenericListViewStudent.html"
-
-
-# Generic Class-Based Detail View
-class StudentDetailView(generic.DetailView):
-    model = student
-    template_name = "GenericDetailedViewStudent.html"
-
-
-
-
-# urls.py
-from django.urls import path
-from reg_page.views import *
-from .views import StudentListView, StudentDetailView
-
-urlpatterns = [
-    path('mainpage/', home1, name='home1'),
-    path('studentlist/', studentlist, name='studentlist'),
-    path('courselist/', courselist, name='courselist'),
-    path('register/', register, name='register'),
-    path('enrolledlist/', enrolledStudents, name='enrolledStudents'),
-
-    # Generic List View
-    path('students/', StudentListView.as_view(), name='student-list'),
-
-    # Generic Detail View
-    path('students/<int:pk>/', StudentDetailView.as_view(), name='student-detail'),
-]
-
-
-
-<!-- templates/GenericListViewStudent.html -->
-{% extends 'basicTemplate.html' %}
-
-{% block title %}
-Generic Student List View
-{% endblock %}
-
-{% block content %}
-
-{% if student_list %}
-<table border="1">
-    <tr>
-        <th>USN</th>
-        <th>Courses Enrolled</th>
-    </tr>
-
-    {% for student in object_list %}
-    <tr>
-        <td>
-            <a href="{% url 'student-detail' student.pk %}">
-                {{ student.usn }}
-            </a>
-        </td>
-
-        <td>
-            {% for course in student.enrollment.all %}
-                <span>{{ course.coursename }}</span><br>
-            {% endfor %}
-        </td>
-    </tr>
-    {% endfor %}
-</table>
-{% else %}
-<h1>No Students Enrolled</h1>
-{% endif %}
-
-{% endblock %}
-
-
-
-<!-- templates/GenericDetailedViewStudent.html -->
-{% extends 'basicTemplate.html' %}
-
-{% block title %}
-Detailed Student View
-{% endblock %}
-
-{% block content %}
-<h1>Student Name: {{ object.name }}</h1>
-<h1>Student USN: {{ object.usn }}</h1>
-<h1>Student Sem: {{ object.sem }}</h1>
-{% endblock %}
-
-
-
-8)
-
-# models.py
-from django.db import models
-
-
-class course1(models.Model):
-    coursecode = models.CharField(max_length=10)
-    coursename = models.CharField(max_length=50)
-    credits = models.IntegerField()
-
-    def __str__(self):
-        return f"{self.coursecode} - {self.coursename}"
-
-
-# admin.py
-from django.contrib import admin
-from pdf_file.models import course1
-
-# Register your models here.
-admin.site.register(course1)
-
-# views.py
-from django.shortcuts import render
-from django.http import HttpResponse
-from pdf_file.models import course1
-
-
-# View to display the course list
-def courselist2(request):
-    courses = course1.objects.all()
-    return render(request, 'course_list.html', {
-        'course_list1': courses
-    })
-
-
-# CSV generation view
+Program 1.   Implement an Adaptive Linear Neuron in Python
+Code: (learn this code ) 
+import numpy as np
+class Adaline:
+    def __init__(self):
+        self.weights = np.zeros(3)
+    def fit(self, X, y):
+        for i in range(10):
+            output = np.dot(X, self.weights[1:]) + self.weights[0]
+            error = y - output
+            self.weights[1:] += 0.01 * np.dot(X.T, error)
+            self.weights[0] += 0.01 * np.sum(error)
+    def predict(self, X):
+        return np.dot(X, self.weights[1:]) + self.weights[0]
+X = np.array([[1,2], [2,3], [3,4]])
+y = np.array([1,1,0])
+a = Adaline()
+a.fit(X, y)
+print("Weights:", a.weights)
+print("Prediction:", a.predict(np.array([2,3])))
+
+Output:
+Weights: [0.08127088 0.03660716 0.11787805]
+Prediction: 0.5081193508836386
+
+2. Implement and demonstrate the FIND-S algorithm for finding the most specific hypothesis based on a given set of training data samples. Read the training data from a .CSV file.
 import csv
+h = ['0','0','0','0','0','0']
+with open(r'C:\Users\sadhv\OneDrive\Desktop\trainingdata.csv') as file:
+    data = csv.reader(file)
+    print(data)
+    positive = []
+    print("\nThe given training examples are:")
+    next(data)
+    for row in data:
+        print(row)
+        if row[-1].lower() == 'yes':
+            positive.append(row)
+print("\nThe positive examples are:")
+for x in positive:
+    print(x)
+print("\nThe steps of the Find-S algorithm are:")
+for row in positive:
+    if h[0] == '0':
+        h = row[:-1]
+    else:
+        for i in range(len(h)):
+            if h[i] != row[i]:
+                h[i] = '?'
+    print(h)
+print("\nThe maximally specific hypothesis is:")
+print(h)
 
+Output:
+<_csv.reader object at 0x0000022168587DC0>
+The given training examples are:
+['Sunny', 'Warm', 'Normal', 'Strong', 'Warm', 'Same', 'Yes']
+['Sunny', 'Warm', 'High', 'Strong', 'Warm', 'Same', 'Yes']
+['Rainy', 'Cold', 'High', 'Strong', 'Warm', 'Change', 'No']
+['Sunny', 'Warm', 'High', 'Strong', 'Cool', 'Change', 'Yes']
+ 
+The positive examples are:
+['Sunny', 'Warm', 'Normal', 'Strong', 'Warm', 'Same', 'Yes']
+['Sunny', 'Warm', 'High', 'Strong', 'Warm', 'Same', 'Yes']
+['Sunny', 'Warm', 'High', 'Strong', 'Cool', 'Change', 'Yes']
+ 
+The steps of the Find-S algorithm are:
+['Sunny', 'Warm', 'Normal', 'Strong', 'Warm', 'Same']
+['Sunny', 'Warm', '?', 'Strong', 'Warm', 'Same']
+['Sunny', 'Warm', '?', 'Strong', '?', '?']
+ 
+The maximally specific hypothesis is:
+['Sunny', 'Warm', '?', 'Strong', '?', '?']
 
-def generateCSV(request):
-    courses = course1.objects.all()
+3. For a given set of training data examples stored in a .CSV file, implement and demonstrate the Candidate-Elimination algorithm to output a description of the set of all hypotheses consistent with the training examples
+import pandas as pd
+import numpy as np
+data = pd.read_csv(r'C:\Users\sadhv\OneDrive\Desktop\2.csv')
+concepts = np.array(data.iloc[:,0:-1])
+target = np.array(data.iloc[:,-1])
+S = concepts[0].copy()
+G = [['?' for i in range(len(S))] for i in range(len(S))]
+for i, h in enumerate(concepts):
+    if target[i] == "yes":
+        for x in range(len(S)):
+            if h[x] != S[x]:
+                S[x] = '?'
+                G[x][x] = '?'
+    if target[i] == "no":
+        for x in range(len(S)):
+            if h[x] != S[x]:
+                G[x][x] = S[x]
+            else:
+                G[x][x] = '?'
+    print("\nStep", i+1)
+    print("S =", S)
+    print("G =", G)
+G = [g for g in G if g != ['?','?','?','?','?','?']]
+print("\nFinal Specific Hypothesis:")
+print(S)
+print("\nFinal General Hypothesis:")
+print(G)
+ 
+Output:
+Step 1 S = ['sunny' 'warm' 'normal' 'strong' 'warm' 'same'] G = [['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?']] 
+Step 2 S = ['sunny' 'warm' '?' 'strong' 'warm' 'same'] G = [['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?']] 
+Step 3 S = ['sunny' 'warm' '?' 'strong' 'warm' 'same'] G = [['sunny', '?', '?', '?', '?', '?'], ['?', 'warm', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', 'same']] 
+Step 4 S = ['sunny' 'warm' '?' 'strong' '?' '?'] G = [['sunny', '?', '?', '?', '?', '?'], ['?', 'warm', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?']] 
+Final Specific Hypothesis: ['sunny' 'warm' '?' 'strong' '?' '?'] 
+Final General Hypothesis: [['sunny', '?', '?', '?', '?', '?'], ['?', 'warm', '?', '?', '?', '?']]
 
-    resp = HttpResponse(content_type='text/csv')
-    resp['Content-Disposition'] = 'attachment; filename=course_data.csv'
+4. Write a program to demonstrate the working of the decision tree based ID3algorithm. Use an appropriate data set for building the decision tree and apply this knowledge to classify a new sample.
+Code:
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score
+data = pd.read_csv(r'C:\Users\sadhv\OneDrive\Desktop\data3.csv')
+le = LabelEncoder()
+for col in data.columns:
+    data[col] = le.fit_transform(data[col])
+X = data.iloc[:, :-1]
+y = data.iloc[:, -1]
+model = DecisionTreeClassifier(criterion='entropy')
+model.fit(X, y)
+acc = accuracy_score(y, model.predict(X))
+test = pd.DataFrame([[0,2,1,0]], columns=X.columns)
+pred = model.predict(test)
+print("Trained Classifier:", model)
+print("\nAccuracy :", acc)
+print("\nPrediction :", pred)
+if pred[0] == 1:
+    print("\nPrediction : Yes")
+else:
+    print("\nPrediction : No")
+ 
+Output:
+Trained Classifier: DecisionTreeClassifier(criterion='entropy')
+Accuracy : 1.0
+Prediction : [1]
+Prediction : Yes
 
-    # Create CSV writer object
-    writer = csv.writer(resp)
+ 5. Write a program to implement the naïve Bayesian classifier for a sample training data set stored as a .CSV file. Compute the accuracy of the classifier, considering few test data sets.
+Code:
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import accuracy_score
+ 
+data = pd.read_csv(r'C:\Users\sadhv\OneDrive\Desktop\data.csv')
+X = data.iloc[:, :-1]
+y = data.iloc[:, -1]
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=1)
+model = GaussianNB()
+model.fit(X_train, y_train)
+pred = model.predict(X_test)
+acc = accuracy_score(y_test, pred)
+print("Trained Classifier:", model)
+print("\nAccuracy :", acc)
+print("\nPrediction :", pred)
+ 
+Output:
+Trained Classifier: GaussianNB()
+Accuracy : 1.0
+Prediction : [1]
 
-    # Header row
-    writer.writerow(['Course Code', 'Course Name', 'Course Credits'])
-
-    # Data rows
-    for c in courses:
-        writer.writerow([
-            c.coursecode,
-            c.coursename,
-            c.credits
-        ])
-
-    return resp
-
-
-# PDF generation view
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table
-
-
-def generatePDF(request):
-    courses = course1.objects.all()
-
-    resp = HttpResponse(content_type='application/pdf')
-    resp['Content-Disposition'] = 'attachment; filename=course_data.pdf'
-
-    # Create PDF document
-    pdf = SimpleDocTemplate(resp, pagesize=A4)
-
-    # Table data
-    table_data = [['Course Code', 'Course Name', 'Course Credits']]
-
-    # Add course rows
-    for c in courses:
-        table_data.append([
-            c.coursecode,
-            c.coursename,
-            c.credits
-        ])
-
-    # Create table
-    table = Table(table_data)
-
-    # Build PDF
-    pdf.build([table])
-
-    return resp
-
-
-# urls.py
-from django.urls import path
-from .views import courselist2, generateCSV, generatePDF
-
-urlpatterns = [
-    path('courses/', courselist2, name='course_list'),
-    path('courses/generateCSV/', generateCSV, name='generate_csv'),
-    path('courses/generatePDF/', generatePDF, name='generate_pdf'),
-]
-
-
-<!-- templates/basic_page.html -->
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        nav {
-            background-color: lightblue;
-            padding: 15px;
-        }
-
-        nav a {
-            color: #fff;
-            text-decoration: none;
-            padding: 10px 20px;
-            margin: 0px 10px;
-            border-radius: 5px;
-            background-color: #555;
-            flex-wrap: wrap;
-        }
-
-        nav a:hover {
-            background-color: aqua;
-        }
-
-        ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-wrap: wrap;
-            flex-direction: row;
-        }
-
-        li {
-            margin-right: 20px;
-            margin-bottom: 25px;
-        }
-    </style>
-
-    <title>
-        {% block title %}{% endblock %}
-    </title>
-</head>
-<body>
-    <center>
-        <h1 style="background-color: blue; color: yellow;">
-            STUDENT COURSE REGISTRATION PORTAL
-        </h1>
-    </center>
-
-    <nav>
-        <ul>
-            <li><a href="/courses/">COURSE LIST</a></li>
-            <li><a href="/courses/generateCSV/">COURSE LIST CSV DOWNLOAD</a></li>
-            <li><a href="/courses/generatePDF/">COURSE LIST PDF DOWNLOAD</a></li>
-        </ul>
-    </nav>
-
-    <section>
-        {% block content %}
-        {% endblock %}
-    </section>
-
-    <footer>
-        <hr />
-        <center>
-            &copy; Designed and Developed by Sandhya
-        </center>
-    </footer>
-</body>
-</html>
-
-
-<!-- templates/course_list.html -->
-{% extends 'basic_page.html' %}
-
-{% block title %}
-Course List
-{% endblock %}
-
-{% block content %}
-<h1>Course List</h1>
-
-<table border="1">
-    <tr>
-        <th>Sub Code</th>
-        <th>Sub Name</th>
-        <th>Credits</th>
-    </tr>
-
-    {% for c in course_list1 %}
-    <tr>
-        <td>{{ c.coursecode }}</td>
-        <td>{{ c.coursename }}</td>
-        <td>{{ c.credits }}</td>
-    </tr>
-    {% endfor %}
-</table>
-{% endblock %}
+6.  Assuming a set of documents that need to be classified, use the naïve Bayesian Classifier model to perform this task. Built-in API can be used to write the program. Calculate the accuracy, precision, and recall for your data set.
+Code:
+import pandas as pd
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import *
+data = pd.read_csv(r'C:\Users\sadhv\OneDrive\Desktop\documents.csv')
+X = data['text']
+y = data['label']
+X = TfidfVectorizer().fit_transform(X)
+model = MultinomialNB()
+model.fit(X, y)
+pred = model.predict(X)
+print("Trained Classifier:", model)
+print("\nAccuracy :", accuracy_score(y, pred))
+print("\nPrecision :", precision_score(y, pred, average='weighted'))
+print("\nRecall :", recall_score(y, pred, average='weighted'))
+print("\nPrediction :", pred)
+print("\nClassification Report:\n")
+print(classification_report(y, pred))
+Output:
+Trained Classifier: MultinomialNB()
+Accuracy : 1.0
+Precision : 1.0
+Recall : 1.0
+Prediction : ['technology' 'technology' 'sports' 'sports' 'politics' 'politics']
+Classification Report:
+              precision    recall  f1-score   support
+ 
+    politics       1.00      1.00      1.00         2
+      sports       1.00      1.00      1.00         2
+  technology       1.00      1.00      1.00         2
+ 
+    accuracy                           1.00         6
+   macro avg       1.00      1.00      1.00         6
+weighted avg       1.00      1.00      1.00         6
+P7.  Write a program to construct a Bayesian network considering medical data. Use this model to demonstrate the diagnosis of heart patients using standard  Heart Disease Data Set. You can use Python ML library classes/API.
+ 
+Code:
+import pandas as pd
+from pgmpy.models import DiscreteBayesianNetwork
+from pgmpy.inference import VariableElimination
+data = pd.read_csv(r'C:\Users\sadhv\OneDrive\Desktop\heart.csv')
+print("Few examples from the dataset are given below\n")
+print(data.head())
+model = DiscreteBayesianNetwork([
+    ('age','heartdisease'),
+    ('chol','heartdisease')
+])
+print("\nLearning CPD using Maximum Likelihood Estimators")
+model.fit(data)
+infer = VariableElimination(model)
+print("\nInferencing with Bayesian Network:")
+print("\n1. Probability of HeartDisease given Age=37")
+q = infer.query(
+    variables=['heartdisease'],
+    evidence={'age':37}
+)
+print(q)
+print("\n2. Probability of HeartDisease given Chol=233")
+q = infer.query(
+    variables=['heartdisease'],
+    evidence={'chol':233}
+)
+print(q)
+Output:
+Few examples from the dataset are given below
+ 
+   age  sex  chol  trestbps  heartdisease
+0   63    1   233       145             1
+1   37    1   250       130             1
+2   41    0   204       130             1
+3   56    1   236       120             0
+4   57    0   354       140             1
+ 
+Learning CPD using Maximum Likelihood Estimators
+ 
+Inferencing with Bayesian Network:
+ 
+1. Probability of HeartDisease given Age=37
++-----------------+---------------------+
+| heartdisease    |   phi(heartdisease) |
++=================+=====================+
+| heartdisease(0) |              0.3000 |
++-----------------+---------------------+
+| heartdisease(1) |              0.7000 |
++-----------------+---------------------+
+ 
+2. Probability of HeartDisease given Chol=233
++-----------------+---------------------+
+| heartdisease    |   phi(heartdisease) |
++=================+=====================+
+| heartdisease(0) |              0.4000 |
++-----------------+---------------------+
+| heartdisease(1) |              0.6000 |
++-----------------+---------------------+
