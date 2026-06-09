@@ -1,1 +1,299 @@
+Program 1.   Implement an Adaptive Linear Neuron in Python
+Code: (learn this code ) 
+import numpy as np
+import pandas as pd
 
+class Adaline:
+    def __init__(self):
+        self.weights = None
+
+    def fit(self, X, y, epochs=10, lr=0.01):
+        self.weights = np.zeros(X.shape[1] + 1)
+
+        for epoch in range(epochs):
+            error = y - (np.dot(X, self.weights[1:]) + self.weights[0])
+            self.weights[1:] += lr * np.dot(X.T, error)
+            self.weights[0] += lr * np.sum(error)
+
+    def predict(self, X):
+        output = np.dot(X, self.weights[1:]) + self.weights[0]
+        return np.where(output > 0.5, 1, 0)
+
+data = pd.read_csv(r'flowers.csv')
+
+X = data.iloc[:, 0:2].values
+y = pd.factorize(data.iloc[:, 2])[0]
+
+model = Adaline()
+model.fit(X, y)
+
+pred = model.predict(X)
+
+print("Final Weights:", model.weights)
+print("Accuracy:", np.mean(pred == y) * 100, "%")
+
+2. Implement and demonstrate the FIND-S algorithm for finding the most specific hypothesis based on a given set of training data samples. Read the training data from a .CSV file.
+import csv
+h = ['0','0','0','0','0','0']
+with open(r'C:\Users\sadhv\OneDrive\Desktop\trainingdata.csv') as file:
+    data = csv.reader(file)
+    print(data)
+    positive = []
+    print("\nThe given training examples are:")
+    next(data)
+    for row in data:
+        print(row)
+        if row[-1].lower() == 'yes':
+            positive.append(row)
+print("\nThe positive examples are:")
+for x in positive:
+    print(x)
+print("\nThe steps of the Find-S algorithm are:")
+for row in positive:
+    if h[0] == '0':
+        h = row[:-1]
+    else:
+        for i in range(len(h)):
+            if h[i] != row[i]:
+                h[i] = '?'
+    print(h)
+print("\nThe maximally specific hypothesis is:")
+print(h)
+
+Output:
+<_csv.reader object at 0x0000022168587DC0>
+The given training examples are:
+['Sunny', 'Warm', 'Normal', 'Strong', 'Warm', 'Same', 'Yes']
+['Sunny', 'Warm', 'High', 'Strong', 'Warm', 'Same', 'Yes']
+['Rainy', 'Cold', 'High', 'Strong', 'Warm', 'Change', 'No']
+['Sunny', 'Warm', 'High', 'Strong', 'Cool', 'Change', 'Yes']
+ 
+The positive examples are:
+['Sunny', 'Warm', 'Normal', 'Strong', 'Warm', 'Same', 'Yes']
+['Sunny', 'Warm', 'High', 'Strong', 'Warm', 'Same', 'Yes']
+['Sunny', 'Warm', 'High', 'Strong', 'Cool', 'Change', 'Yes']
+ 
+The steps of the Find-S algorithm are:
+['Sunny', 'Warm', 'Normal', 'Strong', 'Warm', 'Same']
+['Sunny', 'Warm', '?', 'Strong', 'Warm', 'Same']
+['Sunny', 'Warm', '?', 'Strong', '?', '?']
+ 
+The maximally specific hypothesis is:
+['Sunny', 'Warm', '?', 'Strong', '?', '?']
+
+3. For a given set of training data examples stored in a .CSV file, implement and demonstrate the Candidate-Elimination algorithm to output a description of the set of all hypotheses consistent with the training examples
+
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+from sklearn.tree import DecisionTreeClassifier, export_text
+
+# Load dataset
+data = pd.read_csv("data3.csv")
+
+# Encode all columns
+le = LabelEncoder()
+for col in data.columns:
+    data[col] = le.fit_transform(data[col])
+
+# Features and target
+X = data.iloc[:, :-1]
+y = data.iloc[:, -1]
+
+# Build ID3 tree
+model = DecisionTreeClassifier(criterion="entropy")
+model.fit(X, y)
+
+# Display tree
+print(export_text(model, feature_names=list(X.columns)))
+
+
+
+
+import pandas as pd
+import numpy as np
+data = pd.read_csv(r'C:\Users\sadhv\OneDrive\Desktop\2.csv')
+concepts = np.array(data.iloc[:,0:-1])
+target = np.array(data.iloc[:,-1])
+S = concepts[0].copy()
+G = [['?' for i in range(len(S))] for i in range(len(S))]
+for i, h in enumerate(concepts):
+    if target[i] == "yes":
+        for x in range(len(S)):
+            if h[x] != S[x]:
+                S[x] = '?'
+                G[x][x] = '?'
+    if target[i] == "no":
+        for x in range(len(S)):
+            if h[x] != S[x]:
+                G[x][x] = S[x]
+            else:
+                G[x][x] = '?'
+    print("\nStep", i+1)
+    print("S =", S)
+    print("G =", G)
+G = [g for g in G if g != ['?','?','?','?','?','?']]
+print("\nFinal Specific Hypothesis:")
+print(S)
+print("\nFinal General Hypothesis:")
+print(G)
+ 
+Output:
+Step 1 S = ['sunny' 'warm' 'normal' 'strong' 'warm' 'same'] G = [['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?']] 
+Step 2 S = ['sunny' 'warm' '?' 'strong' 'warm' 'same'] G = [['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?']] 
+Step 3 S = ['sunny' 'warm' '?' 'strong' 'warm' 'same'] G = [['sunny', '?', '?', '?', '?', '?'], ['?', 'warm', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', 'same']] 
+Step 4 S = ['sunny' 'warm' '?' 'strong' '?' '?'] G = [['sunny', '?', '?', '?', '?', '?'], ['?', 'warm', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?'], ['?', '?', '?', '?', '?', '?']] 
+Final Specific Hypothesis: ['sunny' 'warm' '?' 'strong' '?' '?'] 
+Final General Hypothesis: [['sunny', '?', '?', '?', '?', '?'], ['?', 'warm', '?', '?', '?', '?']]
+
+4. Write a program to demonstrate the working of the decision tree based ID3algorithm. Use an appropriate data set for building the decision tree and apply this knowledge to classify a new sample.
+Code:
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score
+data = pd.read_csv(r'C:\Users\sadhv\OneDrive\Desktop\data3.csv')
+le = LabelEncoder()
+for col in data.columns:
+    data[col] = le.fit_transform(data[col])
+X = data.iloc[:, :-1]
+y = data.iloc[:, -1]
+model = DecisionTreeClassifier(criterion='entropy')
+model.fit(X, y)
+acc = accuracy_score(y, model.predict(X))
+test = pd.DataFrame([[0,2,1,0]], columns=X.columns)
+pred = model.predict(test)
+print("Trained Classifier:", model)
+print("\nAccuracy :", acc)
+print("\nPrediction :", pred)
+if pred[0] == 1:
+    print("\nPrediction : Yes")
+else:
+    print("\nPrediction : No")
+ 
+Output:
+Trained Classifier: DecisionTreeClassifier(criterion='entropy')
+Accuracy : 1.0
+Prediction : [1]
+Prediction : Yes
+
+ 5. Write a program to implement the naïve Bayesian classifier for a sample training data set stored as a .CSV file. Compute the accuracy of the classifier, considering few test data sets.
+Code:
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import accuracy_score
+ 
+data = pd.read_csv(r'C:\Users\sadhv\OneDrive\Desktop\data.csv')
+X = data.iloc[:, :-1]
+y = data.iloc[:, -1]
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=1)
+model = GaussianNB()
+model.fit(X_train, y_train)
+pred = model.predict(X_test)
+acc = accuracy_score(y_test, pred)
+print("Trained Classifier:", model)
+print("\nAccuracy :", acc)
+print("\nPrediction :", pred)
+ 
+Output:
+Trained Classifier: GaussianNB()
+Accuracy : 1.0
+Prediction : [1]
+
+6.  Assuming a set of documents that need to be classified, use the naïve Bayesian Classifier model to perform this task. Built-in API can be used to write the program. Calculate the accuracy, precision, and recall for your data set.
+Code:
+import pandas as pd
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import *
+data = pd.read_csv(r'C:\Users\sadhv\OneDrive\Desktop\documents.csv')
+X = data['text']
+y = data['label']
+X = TfidfVectorizer().fit_transform(X)
+model = MultinomialNB()
+model.fit(X, y)
+pred = model.predict(X)
+print("Trained Classifier:", model)
+print("\nAccuracy :", accuracy_score(y, pred))
+print("\nPrecision :", precision_score(y, pred, average='weighted'))
+print("\nRecall :", recall_score(y, pred, average='weighted'))
+print("\nPrediction :", pred)
+print("\nClassification Report:\n")
+print(classification_report(y, pred))
+Output:
+Trained Classifier: MultinomialNB()
+Accuracy : 1.0
+Precision : 1.0
+Recall : 1.0
+Prediction : ['technology' 'technology' 'sports' 'sports' 'politics' 'politics']
+Classification Report:
+              precision    recall  f1-score   support
+ 
+    politics       1.00      1.00      1.00         2
+      sports       1.00      1.00      1.00         2
+  technology       1.00      1.00      1.00         2
+ 
+    accuracy                           1.00         6
+   macro avg       1.00      1.00      1.00         6
+weighted avg       1.00      1.00      1.00         6
+P7.  Write a program to construct a Bayesian network considering medical data. Use this model to demonstrate the diagnosis of heart patients using standard  Heart Disease Data Set. You can use Python ML library classes/API.
+ 
+Code:
+import pandas as pd
+from pgmpy.models import DiscreteBayesianNetwork
+from pgmpy.inference import VariableElimination
+data = pd.read_csv(r'C:\Users\sadhv\OneDrive\Desktop\heart.csv')
+print("Few examples from the dataset are given below\n")
+print(data.head())
+model = DiscreteBayesianNetwork([
+    ('age','heartdisease'),
+    ('chol','heartdisease')
+])
+print("\nLearning CPD using Maximum Likelihood Estimators")
+model.fit(data)
+infer = VariableElimination(model)
+print("\nInferencing with Bayesian Network:")
+print("\n1. Probability of HeartDisease given Age=37")
+q = infer.query(
+    variables=['heartdisease'],
+    evidence={'age':37}
+)
+print(q)
+print("\n2. Probability of HeartDisease given Chol=233")
+q = infer.query(
+    variables=['heartdisease'],
+    evidence={'chol':233}
+)
+print(q)
+Output:
+Few examples from the dataset are given below
+ 
+   age  sex  chol  trestbps  heartdisease
+0   63    1   233       145             1
+1   37    1   250       130             1
+2   41    0   204       130             1
+3   56    1   236       120             0
+4   57    0   354       140             1
+ 
+Learning CPD using Maximum Likelihood Estimators
+ 
+Inferencing with Bayesian Network:
+ 
+1. Probability of HeartDisease given Age=37
++-----------------+---------------------+
+| heartdisease    |   phi(heartdisease) |
++=================+=====================+
+| heartdisease(0) |              0.3000 |
++-----------------+---------------------+
+| heartdisease(1) |              0.7000 |
++-----------------+---------------------+
+ 
+2. Probability of HeartDisease given Chol=233
++-----------------+---------------------+
+| heartdisease    |   phi(heartdisease) |
++=================+=====================+
+| heartdisease(0) |              0.4000 |
++-----------------+---------------------+
+| heartdisease(1) |              0.6000 |
++-----------------+---------------------+
